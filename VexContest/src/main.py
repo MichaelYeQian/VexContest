@@ -1,39 +1,47 @@
-# VEXcode V5 Python - 4 Motor Arcade Drive
 from vex import *
 
+# --- Initialize brain and controller ---
 brain = Brain()
 controller_1 = Controller(PRIMARY)
 
-# --- Change ports & reversals to match your robot ---
-left_front  = Motor(Ports.PORT11,  GearSetting.RATIO_18_1, False)
-left_back   = Motor(Ports.PORT9,  GearSetting.RATIO_18_1, False)
-right_front = Motor(Ports.PORT2,  GearSetting.RATIO_18_1, True)   # often reversed
-right_back  = Motor(Ports.PORT10, GearSetting.RATIO_18_1, True)   # often reversed
+# --- Drive motors ---
+left_front  = Motor(Ports.PORT12, GearSetting.RATIO_18_1, False)
+left_back   = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+right_front = Motor(Ports.PORT19, GearSetting.RATIO_18_1, True)
+right_back  = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
 
-# Group the sides so we can drive each side together
-left  = MotorGroup(left_front, left_back)
-right = MotorGroup(right_front, right_back)
+# Group each side
+left_drive  = MotorGroup(left_front, left_back)
+right_drive = MotorGroup(right_front, right_back)
 
-# Smooth coasting when you let go
-for m in (left_front, left_back, right_front, right_back):
-    m.set_stopping(COAST)
+# --- Extra motor (Port 1, counterclockwise) ---
+extra_motor = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
 
-deadband = 5  # ignore tiny stick noise (0–100)
+# --- Settings ---
+deadband = 5
 
+# --- Main control loop ---
 while True:
-    # Arcade drive
-    fwd  = controller_1.axis3.position()   # forward/back
-    turn = controller_1.axis1.position()   # left/right
+    # ---- Drive control ----
+    forward = controller_1.axis3.position()
+    turn = controller_1.axis1.position()
 
-    left_power  = fwd + turn
-    right_power = fwd - turn
+    left_speed  = forward + turn
+    right_speed = forward - turn
 
-    # Deadband
-    if abs(left_power) < deadband:   left_power = 0
-    if abs(right_power) < deadband:  right_power = 0
+    if abs(left_speed) < deadband:
+        left_speed = 0
+    if abs(right_speed) < deadband:
+        right_speed = 0
 
-    # Spin motor groups
-    left.spin(FORWARD, left_power, PERCENT)
-    right.spin(FORWARD, right_power, PERCENT)
+    left_drive.spin(FORWARD, left_speed, PERCENT)
+    right_drive.spin(FORWARD, right_speed, PERCENT)
+
+    # ---- Spin motor control ----
+    # Press R1 to spin counterclockwise
+    if controller_1.buttonR1.pressing():
+        extra_motor.spin(FORWARD, 100, PERCENT)
+    else:
+        extra_motor.stop()
 
     wait(10, MSEC)
